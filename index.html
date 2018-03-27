@@ -54,6 +54,10 @@
     body button.stripe-button-el span {
       font-family: 'Crafty Girls', cursive;
     }
+    .form-row label {
+      padding-bottom: 5px;
+      display: block;
+    }
     .form-row {
       background: white;
       padding: 7.5px 15px;
@@ -110,11 +114,10 @@
   <img id="logo" width="848" src="./logo.png" />
   <h1>Dites le avec de la broderie</h1>
   <div id="photos"></div>
-  <h3>
-    Fait à la main, à Toulouse.
-  <div id="made-in">
+  <h3><div id="made-in">
     <img src="https://lh3.googleusercontent.com/zRCGH-mTkqT_d8tG5szr4iNepJ0cREAe0fTkaS5othil2mat7lqx60f4lj-eIJ36UahcA3X67iA20IOcTqelGFh7WlvgCJOrXst6dCmwOdGqBG2qyGVNMzVhZ27Gdod0xhi_o13C8nL2vly8dRdIpDk9LF-3FfuoQNgA1Pr6j09qE4IBwt-OBK5Vb8ei6lhKkO13CggDnmQEZLJQSE_cdRc05_0XCkK2bruBJpp_hw13Q4UY7bmaDgVgmVLPXo2IwzUa6shiS72pz-1W2UWLEyKhtxc72bFvYp2WPN-R0_jML7a0fRUbtgYBJMYXn4IQS7MxJkHkz5hrKCC6jJZv-CqaBtCM2uvF8zW94KYk5BWuYQD_fjPD6Cg2eHn0nsRHPq3TS3CEOaoSjDWugT7d3HPAm7Zs7ulo4lPhtWc011csOnMYewaWPYZPDrzfVACenTnfBc4sqmYfQBvrFP8nOBClHv1Owfcul6D3JnV8jBHxbqpTiGlwLXj93t2UwbWz-8AoEFK2wXlN1JnUU3vIZsE5bfE3fRdphlPyRNGxx8h4cbcMJ-240a0fl_hN3DB0x1zjubaVHTJtK0QegCCsPRqdpA0HGgGfSYoGfrI=w814-h233-no">
   </div>
+    Fait à la main, à Toulouse.
   </h3>
   <script type="text/javascript">
     const images = [
@@ -131,10 +134,19 @@
   <script src="https://js.stripe.com/v3/"></script>
   <form method="post" id="payment-form">
     <div class="form-row">
-      <label for="message">Message bordé</label>
+      <label for="message">Message brodé</label>
       <input type="text" id="message" name="message" placeholder="Niquez vos mères">
     </div>
     <div class="form-row">
+      <label for="btn-element">Bouton magique</label>
+      <div id="btn-element">
+        <!-- A Stripe Element will be inserted here. -->
+      </div>
+
+      <!-- Used to display Element errors. -->
+      <div id="btn-errors" role="alert"></div>
+    </div>
+    <div id="card-element-row" style="display: none;" class="form-row">
       <label for="card-element">Carte de crédit</label>
       <div id="card-element">
         <!-- A Stripe Element will be inserted here. -->
@@ -147,43 +159,80 @@
     <button id="pay">Payer avec la carte magique</button>
   </form>
   <script type="text/javascript">
+    const _id = id => document.getElementById(id)
     const stripe = Stripe('pk_test_LtnbItPQqFoSO81qWok5PL3p')
     const elements = stripe.elements()
-    // Custom styling can be passed to options when creating an Element.
-    const style = {
-      base: {
-        // Add your base input styles here. For example:
-        fontSize: '16px',
-        color: "#32325d",
+
+    const paymentRequest = stripe.paymentRequest({
+      country: 'FR',
+      currency: 'eur',
+      total: {
+        amount: 1600,
+        label: 'Votre belle commande',
       },
-    }
-
-    // Create an instance of the card Element.
-    const card = elements.create('card', {style})
-
-    // Add an instance of the card Element into the `card-element` <div>.
-    card.mount('#card-element')
-    card.addEventListener('change', ({ error }) => {
-      const displayError = document.getElementById('card-errors')
-      if (error) {
-        displayError.textContent = error.message
-      } else {
-        displayError.textContent = ''
-      }
+      displayItems: [
+        { amount: 1500, label: 'Masque de nuit bordé' },
+        { amount: 100, label: 'Frais de facturation' },
+      ],
+      requestPayerName: true,
+      requestShipping: true,
+      shippingOptions: [
+        {
+          id: 'hand-in-hand',
+          label: 'Remis en main propre à Toulouse',
+          detail: 'Si on peu se retrouver pas loin du centre c\'est parfait !',
+          amount: 0,
+        },
+        {
+          id: 'post',
+          label: 'Par la poste',
+          detail: 'Envoyer en mode lettre sans numéro de suivi',
+          amount: 100,
+        },
+        {
+          id: 'post-tracked',
+          label: 'Par la poste avec suivi',
+          detail: 'Envoyer en mode lettre avec numéro de suivi',
+          amount: 200,
+        },
+      ]
     })
 
-    const form = document.getElementById('payment-form')
-    form.addEventListener('submit', event => {
-      event.preventDefault()
+    const reqBtn = elements.create('paymentRequestButton', {
+      // style: {
+      //   type: 'buy',
+      //   theme: 'light-outline',
+      // },
+      paymentRequest,
+    })
+  // Check the availability of the Payment Request API first.
+  paymentRequest.canMakePayment()
+    .then(() => reqBtn.mount('#btn-element'))
+    .catch(() => {
+      //fallback to card
+          // Create an instance of the card Element.
+      const card = elements.create('card', {
+        style: {
+          base: {
+            fontSize: '20px',
+            color: "#1c4879",
+          },
+        },
+        hidePostalCode: true,
+      })
+      _id('card-element-row').style.display = ''
+      card.mount('#card-element')
+      card.addEventListener('change', ({ error }) =>
+        _id('card-errors').textContent = error ? error.message : '')
 
-      stripe.createToken(card).then(({ token, error }) => {
-        if (error) {
-          // Inform the customer that there was an error.
-          const errorElement = document.getElementById('card-errors')
-          errorElement.textContent = error.message
-        } else {
-          console.log(token)
-          fetch('https://api.stripe.com/v1/charges', {
+      const form = _id('payment-form')
+      form.addEventListener('submit', event => {
+        event.preventDefault()
+        stripe.createToken(card).then(({ token, error }) => {
+          if (error) {
+            return _id('card-errors').textContent = error.message
+          }
+          return fetch('https://api.stripe.com/v1/charges', {
             method: 'POST',
             headers: {
               Authorization: "Bearer sk_test_vSOOK5V1j0Zg5zUAq1UJtzrM",
@@ -191,10 +240,10 @@
             },
             body: `amount=1500&currency=eur&source=${token.id}&description=Charge for addison.brown@example.com`,
           }).then(r => r.json()).then(console.log)
-        }
+        })
       })
-
     })
+
 
   </script>
   <footer>
