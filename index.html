@@ -131,33 +131,24 @@
 
 
   </script>
-  <script src="https://js.stripe.com/v3/"></script>
-  <form method="post" id="payment-form">
+  <form method="post" id="payment-form" style="display: none;">
     <div class="form-row">
       <label for="message">Message brodé</label>
       <input type="text" id="message" name="message" placeholder="Niquez vos mères">
     </div>
-    <div class="form-row">
-      <label for="btn-element">Bouton magique</label>
-      <div id="btn-element">
-        <!-- A Stripe Element will be inserted here. -->
-      </div>
-
-      <!-- Used to display Element errors. -->
-      <div id="btn-errors" role="alert"></div>
-    </div>
-    <div id="card-element-row" style="display: none;" class="form-row">
-      <label for="card-element">Carte de crédit</label>
-      <div id="card-element">
-        <!-- A Stripe Element will be inserted here. -->
-      </div>
-
-      <!-- Used to display Element errors. -->
-      <div id="card-errors" role="alert"></div>
-    </div>
-
-    <button id="pay">Payer avec la carte magique</button>
+    <div id="btn-element"></div>
   </form>
+  <footer>
+    Une demande spéciale ?
+    <span id="missing-payement">
+      <br>Vous n'avez pas d'option de payement ?
+    </span>
+    <span id="command-extra" style="display: none;">
+      <br>Un soucis avec votre commande ?
+    </span>
+    <br>Contactez Elsa directement au <b>05 62 72 89 25</b>
+  </footer>
+  <script src="https://js.stripe.com/v3/"></script>
   <script type="text/javascript">
     const _id = id => document.getElementById(id)
     const stripe = Stripe('pk_test_LtnbItPQqFoSO81qWok5PL3p')
@@ -168,21 +159,11 @@
       currency: 'eur',
       total: {
         amount: 1600,
-        label: 'Votre belle commande',
+        label: 'Masque de nuit bordé',
       },
-      displayItems: [
-        { amount: 1500, label: 'Masque de nuit bordé' },
-        { amount: 100, label: 'Frais de facturation' },
-      ],
       requestPayerName: true,
       requestShipping: true,
       shippingOptions: [
-        {
-          id: 'hand-in-hand',
-          label: 'Remis en main propre à Toulouse',
-          detail: 'Si on peu se retrouver pas loin du centre c\'est parfait !',
-          amount: 0,
-        },
         {
           id: 'post',
           label: 'Par la poste',
@@ -192,65 +173,32 @@
         {
           id: 'post-tracked',
           label: 'Par la poste avec suivi',
-          detail: 'Envoyer en mode lettre avec numéro de suivi',
+          detail: 'Envoyer en mode lettre avec numéro de suivi qui vous sera communiqué par mail',
           amount: 200,
+        },
+        {
+          id: 'hand-in-hand',
+          label: 'Remis en main propre à Toulouse',
+          detail: 'Si on peu se retrouver pas loin du centre c\'est parfait !',
+          amount: 0,
         },
       ]
     })
 
     const reqBtn = elements.create('paymentRequestButton', {
-      // style: {
-      //   type: 'buy',
-      //   theme: 'light-outline',
-      // },
+      style: { paymentRequestButton: { type: 'buy', theme: 'light-outline' } },
       paymentRequest,
     })
-  // Check the availability of the Payment Request API first.
-  paymentRequest.canMakePayment()
-    .then(() => reqBtn.mount('#btn-element'))
-    .catch(() => {
-      //fallback to card
-          // Create an instance of the card Element.
-      const card = elements.create('card', {
-        style: {
-          base: {
-            fontSize: '20px',
-            color: "#1c4879",
-          },
-        },
-        hidePostalCode: true,
-      })
-      _id('card-element-row').style.display = ''
-      card.mount('#card-element')
-      card.addEventListener('change', ({ error }) =>
-        _id('card-errors').textContent = error ? error.message : '')
 
-      const form = _id('payment-form')
-      form.addEventListener('submit', event => {
-        event.preventDefault()
-        stripe.createToken(card).then(({ token, error }) => {
-          if (error) {
-            return _id('card-errors').textContent = error.message
-          }
-          return fetch('https://api.stripe.com/v1/charges', {
-            method: 'POST',
-            headers: {
-              Authorization: "Bearer sk_test_vSOOK5V1j0Zg5zUAq1UJtzrM",
-              "Content-Type": "application/x-www-form-urlencoded",
-            },
-            body: `amount=1500&currency=eur&source=${token.id}&description=Charge for addison.brown@example.com`,
-          }).then(r => r.json()).then(console.log)
-        })
+    paymentRequest.canMakePayment()
+      .then(() => {
+        _id('payment-form')style.display = ''
+        _id('command-extra')style.display = ''
+        _id('missing-payement')style.display = 'none'
+        reqBtn.mount('#btn-element')
       })
-    })
-
+      .catch(console.error)
 
   </script>
-  <footer>
-    Une demande spéciale ?
-    <br>Un soucis avec votre commande ?
-    <br>Vous n'aimez pas payer avec votre carte magique ?
-    <br>Contactez Elsa directement au <b>05 62 72 89 25</b>
-  </footer>
 </body>
 </html>
