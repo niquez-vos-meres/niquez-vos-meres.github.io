@@ -192,9 +192,9 @@
 
     paymentRequest.canMakePayment()
       .then(() => {
-        _id('payment-form')style.display = ''
-        _id('command-extra')style.display = ''
-        _id('missing-payement')style.display = 'none'
+        _id('payment-form').style.display = ''
+        _id('command-extra').style.display = ''
+        _id('missing-payement').style.display = 'none'
         reqBtn.mount('#btn-element')
       })
       .catch(console.error)
